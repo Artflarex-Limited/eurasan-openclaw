@@ -1,0 +1,60 @@
+name: Eurasan Order Tracking
+description: Track order status by confirmation number on Eurasan
+version: 1.0
+
+parameters:
+  confirmation_number:
+    type: string
+    required: true
+    description: RFQ or order confirmation number
+
+steps:
+  - name: navigate_to_orders
+    action: browser.navigate
+    args:
+      url: ${{ EURASAN_WEB_URL }}/orders
+
+  - name: search_order
+    action: browser.fill
+    args:
+      selector: "#order-search"
+      value: ${{ parameters.confirmation_number }}
+
+  - name: submit_search
+    action: browser.click
+    args:
+      selector: "#search-btn"
+
+  - name: wait_for_results
+    action: browser.wait_for_selector
+    args:
+      selector: ".order-result"
+
+  - name: extract_status
+    action: browser.evaluate
+    args:
+      expression: |
+        () => {
+          const statusEl = document.querySelector('.order-status');
+          const timelineEl = document.querySelector('.order-timeline');
+          const itemsEl = document.querySelector('.order-items');
+          const supplierEl = document.querySelector('.order-supplier');
+          return {
+            status: statusEl ? statusEl.textContent.trim() : null,
+            timeline: timelineEl ? timelineEl.textContent.trim() : null,
+            items: itemsEl ? itemsEl.textContent.trim() : null,
+            supplier: supplierEl ? supplierEl.textContent.trim() : null
+          };
+        }
+
+error_handling:
+  on_not_found:
+    max_retries: 2
+    backoff: exponential
+    raise: OrderNotFoundError
+
+output:
+  status: ${{ steps.extract_status.result.status }}
+  timeline: ${{ steps.extract_status.result.timeline }}
+  items: ${{ steps.extract_status.result.items }}
+  supplier: ${{ steps.extract_status.result.supplier }}

@@ -1,0 +1,78 @@
+name: Eurasan Login
+description: Authenticate with Eurasan platform and establish session
+version: 1.0
+
+parameters:
+  username:
+    type: string
+    required: true
+    description: Eurasan account username
+  password:
+    type: string
+    required: true
+    description: Account password
+  mfa_code:
+    type: string
+    required: false
+    description: 2FA code if MFA is enabled
+
+steps:
+  - name: navigate_to_login
+    action: browser.navigate
+    args:
+      url: ${{ EURASAN_WEB_URL }}/login
+
+  - name: enter_username
+    action: browser.fill
+    args:
+      selector: "#username"
+      value: ${{ parameters.username }}
+
+  - name: enter_password
+    action: browser.fill
+    args:
+      selector: "#password"
+      value: ${{ parameters.password }}
+
+  - name: submit_login
+    action: browser.click
+    args:
+      selector: "button[type=submit]"
+
+  - name: handle_mfa
+    if: ${{ parameters.mfa_code }}
+    steps:
+      - name: enter_mfa
+        action: browser.fill
+        args:
+          selector: "#mfa-code"
+          value: ${{ parameters.mfa_code }}
+
+      - name: submit_mfa
+        action: browser.click
+        args:
+          selector: "button[type=submit]"
+
+  - name: verify_login
+    action: browser.wait_for_url
+    args:
+      url_pattern: "**/dashboard/**"
+
+  - name: extract_token
+    action: browser.evaluate
+    args:
+      expression: |
+        () => {
+          const token = sessionStorage.getItem('auth_token');
+          return token;
+        }
+
+error_handling:
+  on_auth_error:
+    max_retries: 3
+    backoff: exponential
+    raise: AuthError
+
+output:
+  token: ${{ steps.extract_token.result }}
+  session_expiry: ${{ steps.verify_login.timestamp }}

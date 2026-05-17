@@ -1,0 +1,23 @@
+{
+  "name": "eurasan-openclaw",
+  "version": "1.0.0",
+  "description": "OpenClaw integration for Eurasan B2B Marketplace",
+  "main": "index.js",
+  "scripts": {
+    "test": "zunit",
+    "test:watch": "zunit --watch",
+    "test:headed": "zunit --headed"
+  },
+  "keywords": ["openclaw", "eurasan", "browser-automation", "b2b", "marketplace"],
+  "author": "Artflarex Solutions",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "zunit": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

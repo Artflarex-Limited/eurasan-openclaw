@@ -1,0 +1,111 @@
+name: Eurasan RFQ Creation
+description: Create a Request for Quotation on Eurasan B2B Marketplace
+version: 1.0
+
+parameters:
+  products:
+    type: array
+    required: true
+    description: Array of product objects with name, quantity, unit
+  specifications:
+    type: string
+    required: false
+    description: Detailed product specifications
+  deadline:
+    type: string
+    required: false
+    description: Delivery deadline (YYYY-MM-DD)
+  notes:
+    type: string
+    required: false
+    description: Additional notes for suppliers
+
+steps:
+  - name: navigate_to_rfq
+    action: browser.navigate
+    args:
+      url: ${{ EURASAN_WEB_URL }}/rfq/create
+
+  - name: wait_for_form
+    action: browser.wait_for_selector
+    args:
+      selector: "#rfq-form"
+
+  - name: add_products
+    foreach: ${{ parameters.products }}
+    steps:
+      - name: click_add_product
+        action: browser.click
+        args:
+          selector: "#add-product-btn"
+
+      - name: fill_product
+        action: browser.fill
+        args:
+          selector: "#product-name"
+          value: ${{ item.name }}
+
+      - name: fill_quantity
+        action: browser.fill
+        args:
+          selector: "#product-quantity"
+          value: ${{ item.quantity }}
+
+      - name: fill_unit
+        action: browser.fill
+        args:
+          selector: "#product-unit"
+          value: ${{ item.unit }}
+
+  - name: fill_specifications
+    if: ${{ parameters.specifications }}
+    action: browser.fill
+    args:
+      selector: "#specifications"
+      value: ${{ parameters.specifications }}
+
+  - name: fill_deadline
+    if: ${{ parameters.deadline }}
+    action: browser.fill
+    args:
+      selector: "#deadline"
+      value: ${{ parameters.deadline }}
+
+  - name: fill_notes
+    if: ${{ parameters.notes }}
+    action: browser.fill
+    args:
+      selector: "#notes"
+      value: ${{ parameters.notes }}
+
+  - name: submit_rfq
+    action: browser.click
+    args:
+      selector: "#submit-rfq"
+
+  - name: wait_for_confirmation
+    action: browser.wait_for_selector
+    args:
+      selector: ".confirmation-number"
+
+  - name: extract_confirmation
+    action: browser.evaluate
+    args:
+      expression: |
+        () => {
+          const el = document.querySelector('.confirmation-number');
+          return el ? el.textContent.trim() : null;
+        }
+
+error_handling:
+  on_validation_error:
+    max_retries: 2
+    backoff: linear
+    action: re-fetch_form_and_retry
+
+  on_session_error:
+    action: re-authenticate_and_resume
+
+output:
+  confirmation_number: ${{ steps.extract_confirmation.result }}
+  submitted_at: ${{ steps.wait_for_confirmation.timestamp }}
